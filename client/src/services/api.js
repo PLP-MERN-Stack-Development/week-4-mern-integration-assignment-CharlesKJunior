@@ -1,136 +1,94 @@
-// api.js - API service for making requests to the backend
-
 import axios from 'axios';
 
-// Create axios instance with base URL
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  baseURL: '/api/v1',
 });
 
-// Add request interceptor for authentication
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
+// Set auth token header
+api.interceptors.request.use(config => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
-);
+  return config;
+});
 
-// Add response interceptor for error handling
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    // Handle authentication errors
-    if (error.response && error.response.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+// Posts API
+export const getPosts = (params = {}) => api.get('/posts', { params });
+export const getPost = (id) => api.get(`/posts/${id}`);
+export const createPost = (postData) => {
+  const formData = new FormData();
+  Object.keys(postData).forEach(key => {
+    if (key === 'featuredImage' && postData[key] instanceof File) {
+      formData.append('featuredImage', postData[key]);
+    } else if (postData[key] !== null && postData[key] !== undefined) {
+      formData.append(key, postData[key]);
     }
-    return Promise.reject(error);
-  }
-);
-
-// Post API services
-export const postService = {
-  // Get all posts with optional pagination and filters
-  getAllPosts: async (page = 1, limit = 10, category = null) => {
-    let url = `/posts?page=${page}&limit=${limit}`;
-    if (category) {
-      url += `&category=${category}`;
+  });
+  return api.post('/posts', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
     }
-    const response = await api.get(url);
-    return response.data;
-  },
-
-  // Get a single post by ID or slug
-  getPost: async (idOrSlug) => {
-    const response = await api.get(`/posts/${idOrSlug}`);
-    return response.data;
-  },
-
-  // Create a new post
-  createPost: async (postData) => {
-    const response = await api.post('/posts', postData);
-    return response.data;
-  },
-
-  // Update an existing post
-  updatePost: async (id, postData) => {
-    const response = await api.put(`/posts/${id}`, postData);
-    return response.data;
-  },
-
-  // Delete a post
-  deletePost: async (id) => {
-    const response = await api.delete(`/posts/${id}`);
-    return response.data;
-  },
-
-  // Add a comment to a post
-  addComment: async (postId, commentData) => {
-    const response = await api.post(`/posts/${postId}/comments`, commentData);
-    return response.data;
-  },
-
-  // Search posts
-  searchPosts: async (query) => {
-    const response = await api.get(`/posts/search?q=${query}`);
-    return response.data;
-  },
+  });
 };
-
-// Category API services
-export const categoryService = {
-  // Get all categories
-  getAllCategories: async () => {
-    const response = await api.get('/categories');
-    return response.data;
-  },
-
-  // Create a new category
-  createCategory: async (categoryData) => {
-    const response = await api.post('/categories', categoryData);
-    return response.data;
-  },
-};
-
-// Auth API services
-export const authService = {
-  // Register a new user
-  register: async (userData) => {
-    const response = await api.post('/auth/register', userData);
-    return response.data;
-  },
-
-  // Login user
-  login: async (credentials) => {
-    const response = await api.post('/auth/login', credentials);
-    if (response.data.token) {
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+export const updatePost = (id, postData) => {
+  const formData = new FormData();
+  Object.keys(postData).forEach(key => {
+    if (key === 'featuredImage' && postData[key] instanceof File) {
+      formData.append('featuredImage', postData[key]);
+    } else if (postData[key] !== null && postData[key] !== undefined) {
+      formData.append(key, postData[key]);
     }
-    return response.data;
-  },
-
-  // Logout user
-  logout: () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-  },
-
-  // Get current user
-  getCurrentUser: () => {
-    const user = localStorage.getItem('user');
-    return user ? JSON.parse(user) : null;
-  },
+  });
+  return api.put(`/posts/${id}`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
 };
+export const deletePost = (id) => api.delete(`/posts/${id}`);
 
-export default api; 
+// Categories API
+export const getCategories = () => api.get('/categories');
+export const getCategory = (id) => api.get(`/categories/${id}`);
+export const createCategory = (categoryData) => {
+  const formData = new FormData();
+  Object.keys(categoryData).forEach(key => {
+    if (key === 'featuredImage' && categoryData[key] instanceof File) {
+      formData.append('featuredImage', categoryData[key]);
+    } else {
+      formData.append(key, categoryData[key]);
+    }
+  });
+  return api.post('/categories', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
+};
+export const updateCategory = (id, categoryData) => {
+  const formData = new FormData();
+  Object.keys(categoryData).forEach(key => {
+    if (key === 'featuredImage' && categoryData[key] instanceof File) {
+      formData.append('featuredImage', categoryData[key]);
+    } else {
+      formData.append(key, categoryData[key]);
+    }
+  });
+  return api.put(`/categories/${id}`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
+};
+export const deleteCategory = (id) => api.delete(`/categories/${id}`);
+
+// Auth API
+export const register = (userData) => api.post('/auth/register', userData);
+export const login = (credentials) => api.post('/auth/login', credentials);
+export const getMe = () => api.get('/auth/me');
+export const updateUser = (userData) => api.put('/auth/updatedetails', userData);
+export const updatePassword = (passwords) => api.put('/auth/updatepassword', passwords);
+export const logout = () => api.get('/auth/logout');
+
+export default api;
